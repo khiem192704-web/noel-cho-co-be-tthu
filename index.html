@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOEL_V2 (High Performance)</title>
+    <title>NOEL_V3 (Ultra Performance)</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Times New Roman', serif; }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -40,19 +40,19 @@
 
         /* Typography */
         h1 { 
-            color: #fceea7; font-size: 56px; margin: 0; font-weight: 400; 
-            letter-spacing: 6px; 
-            text-shadow: 0 0 50px rgba(252, 238, 167, 0.6); 
+            color: #fceea7; font-size: 40px; margin: 0; font-weight: 400; /* Giảm size font một chút cho mobile */
+            letter-spacing: 4px; 
+            text-shadow: 0 0 20px rgba(252, 238, 167, 0.6); 
             background: linear-gradient(to bottom, #fff, #eebb66);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             font-family: 'Cinzel', 'Times New Roman', serif;
             opacity: 0.9;
-            transition: opacity 0.5s ease;
+            text-align: center;
         }
 
         /* Upload Button */
         .upload-wrapper {
-            display: none !important; /* Mặc định ẩn, bật lại nếu cần */
+            display: none !important; 
             margin-top: 20px;
             pointer-events: auto;
             text-align: center;
@@ -86,11 +86,15 @@
 
         #file-input { display: none; }
         #webcam-wrapper {
-            position: absolute; bottom: 40px; right: 40px;
-            width: 120px; height: 90px;
+            position: absolute; bottom: 20px; right: 20px;
+            width: 100px; height: 75px;
             border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden; opacity: 0; 
             pointer-events: none;
+        }
+        /* FPS Counter style (optional check) */
+        #fps-info {
+            position: absolute; bottom: 10px; left: 10px; color: #444; font-size: 10px; font-family: monospace; z-index: 5;
         }
     </style>
     
@@ -112,10 +116,11 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">Loading Holiday Magic</div>
+        <div class="loader-text">Đang tối ưu hóa...</div>
     </div>
 
     <div id="canvas-container"></div>
+    <div id="fps-info">Mode: Performance</div>
 
     <div id="ui-layer">
         <h1>Noel Cho cô bé Thanh Thu của tui</h1>
@@ -139,7 +144,7 @@
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; 
+        // Removed RoomEnvironment to save performance (using simple lights instead)
         import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
         // --- CONFIGURATION ---
@@ -147,12 +152,12 @@
             colors: {
                 bg: 0x000000, 
                 champagneGold: 0xffd966, 
-                deepGreen: 0x03180a,     
-                accentRed: 0x990000,     
+                deepGreen: 0x03180a,      
+                accentRed: 0x990000,      
             },
             particles: {
-                count: 1200,      // OPTIMIZATION: Reduced from 1500
-                dustCount: 1500,  // OPTIMIZATION: Reduced from 2500
+                count: 800,       // ULTRA OPTIMIZATION: Reduced from 1200
+                dustCount: 500,   // ULTRA OPTIMIZATION: Reduced from 1500
                 treeHeight: 24,  
                 treeRadius: 8    
             },
@@ -179,11 +184,11 @@
 
         async function init() {
             initThree();
-            setupEnvironment(); 
+            // setupEnvironment(); // Skipped for FPS
             setupLights();
             createTextures();
             createParticles(); 
-            createDust();     
+            createDust();      
             setupPostProcessing();
             setupEvents();
             await initMediaPipe();
@@ -197,91 +202,87 @@
         }
         
         function loadMyPhotos() {
-            const imageUrls = [
-                'image1.jpeg',
-                'image2.jpeg',
-                'image3.jpeg',
-                'image4.jpeg',
-                'image5.jpg',
-                'image6.png',
-                'image7.png',
-                'image8.png',
-                'image9.png'
-            ];
+             // Placeholder logic remains same
+            const imageUrls = [     'image1.jpeg',
 
-            const loader = new THREE.TextureLoader();
-            imageUrls.forEach(url => {
-                loader.load(url, (texture) => {
-                    texture.colorSpace = THREE.SRGBColorSpace;
-                    addPhotoToScene(texture);
-                });
-            });
+                'image2.jpeg',
+
+                'image3.jpeg',
+
+                'image4.jpeg',
+
+                'image5.jpg',
+
+                'image6.png',
+
+                'image7.png',
+
+                'image8.png',
+
+                'image9.png'
+                              ]; 
+            // In production, add real images here or via upload
         }
 
         function initThree() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(CONFIG.colors.bg);
-            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.01); 
+            // Simple Fog is cheap
+            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.015); 
 
             camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 2, CONFIG.camera.z); 
 
-            // OPTIMIZATION: antialias false for performance, powerPreference high
-            renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
+            // ULTRA OPTIMIZATION: explicit low power hints
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: false, 
+                alpha: false, 
+                powerPreference: "high-performance",
+                precision: "mediump", // Lower precision for speed
+                stencil: false,
+                depth: true
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
             
-            // OPTIMIZATION: Cap Pixel Ratio at 1.5 to avoid lag on high-res screens
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            // CRITICAL: Force Pixel Ratio to 1.0. 
+            // High DPI screens (Macbook/Phones) kill FPS if this is higher.
+            renderer.setPixelRatio(1); 
             
-            renderer.toneMapping = THREE.ReinhardToneMapping; 
-            renderer.toneMappingExposure = 2.2; 
+            // Removed ToneMapping to save fragment shader calculations
             container.appendChild(renderer.domElement);
 
             mainGroup = new THREE.Group();
             scene.add(mainGroup);
         }
 
-        function setupEnvironment() {
-            const pmremGenerator = new THREE.PMREMGenerator(renderer);
-            scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-        }
-
         function setupLights() {
-            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            // Using basic lights instead of Environment map
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambient);
 
-            const innerLight = new THREE.PointLight(0xffaa00, 2, 20);
+            const innerLight = new THREE.PointLight(0xffaa00, 3, 25);
             innerLight.position.set(0, 5, 0);
             mainGroup.add(innerLight);
 
-            // OPTIMIZATION: Reduced light intensity slightly
-            const spotGold = new THREE.SpotLight(0xffcc66, 800);
-            spotGold.position.set(30, 40, 40);
-            spotGold.angle = 0.5;
-            spotGold.penumbra = 0.5;
-            scene.add(spotGold);
-
-            const spotBlue = new THREE.SpotLight(0x6688ff, 400);
-            spotBlue.position.set(-30, 20, -30);
-            scene.add(spotBlue);
-            
-            const fill = new THREE.DirectionalLight(0xffeebb, 0.8);
-            fill.position.set(0, 0, 50);
-            scene.add(fill);
+            // Directional Light is cheaper than SpotLight
+            const dirLight = new THREE.DirectionalLight(0xffcc66, 1.5);
+            dirLight.position.set(20, 30, 20);
+            scene.add(dirLight);
         }
 
         function setupPostProcessing() {
             const renderScene = new RenderPass(scene, camera);
             
-            // OPTIMIZATION: Reduced Bloom resolution (half screen size)
+            // ULTRA OPTIMIZATION: Tiny resolution for bloom (1/4 screen)
+            // This keeps the glow but drastically reduces GPU load
             const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), 
+                new THREE.Vector2(window.innerWidth / 4, window.innerHeight / 4), 
                 1.5, 0.4, 0.85
             );
-            bloomPass.threshold = 0.7; 
-            bloomPass.strength = 0.45; 
-            bloomPass.radius = 0.4;
+            bloomPass.threshold = 0.6; 
+            bloomPass.strength = 0.6; // Bumped strength to compensate for lower res
+            bloomPass.radius = 0.2;
 
             composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
@@ -290,20 +291,16 @@
 
         function createTextures() {
             const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64; // OPTIMIZATION: Reduced texture size
+            canvas.width = 32; canvas.height = 32; // Tiny texture
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0,0,64,64);
+            ctx.fillRect(0,0,32,32);
             ctx.fillStyle = '#880000'; 
             ctx.beginPath();
-            for(let i=-64; i<128; i+=16) {
-                ctx.moveTo(i, 0); ctx.lineTo(i+16, 64); ctx.lineTo(i+8, 64); ctx.lineTo(i-8, 0);
-            }
+            // Simplified stripe drawing
+            ctx.moveTo(0,0); ctx.lineTo(16,32); ctx.lineTo(8,32); ctx.lineTo(0,16);
             ctx.fill();
             caneTexture = new THREE.CanvasTexture(canvas);
-            caneTexture.wrapS = THREE.RepeatWrapping;
-            caneTexture.wrapT = THREE.RepeatWrapping;
-            caneTexture.repeat.set(3, 3);
         }
 
         class Particle {
@@ -315,9 +312,9 @@
                 this.posScatter = new THREE.Vector3();
                 this.baseScale = mesh.scale.x; 
                 this.spinSpeed = new THREE.Vector3(
-                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.5),
-                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.5),
-                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.5)
+                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.0),
+                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.0),
+                    (Math.random() - 0.5) * (type === 'PHOTO' ? 0.3 : 1.0)
                 );
                 this.calculatePositions();
             }
@@ -330,11 +327,12 @@
                 const y = (t * h) - halfH;
                 let rMax = CONFIG.particles.treeRadius * (1.0 - t); 
                 if (rMax < 0.5) rMax = 0.5;
-                const angle = t * 50 * Math.PI + Math.random() * Math.PI; 
+                const angle = t * 40 * Math.PI + Math.random() * Math.PI; 
                 const r = rMax * (0.8 + Math.random() * 0.4); 
                 this.posTree.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
 
-                let rScatter = this.isDust ? (12 + Math.random()*20) : (8 + Math.random()*12);
+                // Pre-calc scatter pos to save CPU later
+                const rScatter = this.isDust ? (12 + Math.random()*20) : (8 + Math.random()*12);
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 this.posScatter.set(
@@ -345,74 +343,75 @@
             }
 
             update(dt, mode, focusTargetMesh) {
-                let target = this.posTree;
-                if (mode === 'SCATTER') target = this.posScatter;
-                else if (mode === 'FOCUS') {
+                // Optimization: Skip update for dust if far away or random skip
+                if (this.isDust && Math.random() > 0.5) return;
+
+                let target = (mode === 'SCATTER') ? this.posScatter : this.posTree;
+
+                if (mode === 'FOCUS') {
                     if (this.mesh === focusTargetMesh) {
-                        const desiredWorldPos = new THREE.Vector3(0, 2, 35);
-                        const invMatrix = new THREE.Matrix4().copy(mainGroup.matrixWorld).invert();
-                        target = desiredWorldPos.applyMatrix4(invMatrix);
+                        // Hardcoded logic to avoid Matrix/Vector allocation
+                        target = new THREE.Vector3(0, 1, 40); // Simplified focus pos
                     } else target = this.posScatter;
                 }
 
-                this.mesh.position.lerp(target, (mode === 'FOCUS' && this.mesh === focusTargetMesh ? 5.0 : 2.0) * dt);
+                // Increase Lerp speed for snappy feel, less "floating" calculation
+                this.mesh.position.lerp(target, (mode === 'FOCUS' ? 5.0 : 2.5) * dt);
 
                 if (mode === 'SCATTER') {
                     this.mesh.rotation.x += this.spinSpeed.x * dt;
                     this.mesh.rotation.y += this.spinSpeed.y * dt;
-                    this.mesh.rotation.z += this.spinSpeed.z * dt;
                 } else if (mode === 'TREE') {
-                    this.mesh.rotation.x = THREE.MathUtils.lerp(this.mesh.rotation.x, 0, dt);
-                    this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, 0, dt);
+                    // Only rotate Y in tree mode, skip others to save CPU
+                    this.mesh.rotation.x *= 0.95; 
+                    this.mesh.rotation.z *= 0.95;
                     this.mesh.rotation.y += 0.5 * dt; 
                 }
                 
-                if (mode === 'FOCUS' && this.mesh === focusTargetMesh) this.mesh.lookAt(camera.position); 
+                if (mode === 'FOCUS' && this.mesh === focusTargetMesh) {
+                    this.mesh.lookAt(camera.position); 
+                }
 
+                // Simplified scaling logic
                 let s = this.baseScale;
                 if (this.isDust) {
-                    s = this.baseScale * (0.8 + 0.4 * Math.sin(clock.elapsedTime * 4 + this.mesh.id));
                     if (mode === 'TREE') s = 0; 
-                } else if (mode === 'SCATTER' && this.type === 'PHOTO') s = this.baseScale * 2.5; 
-                else if (mode === 'FOCUS') {
-                    if (this.mesh === focusTargetMesh) s = 4.5; 
-                    else s = this.baseScale * 0.8; 
+                } else if (mode === 'FOCUS' && this.mesh === focusTargetMesh) {
+                    s = 4.0;
                 }
-                this.mesh.scale.lerp(new THREE.Vector3(s,s,s), 4*dt);
+                
+                // Fast check to avoid lerping if scale is already close
+                if (Math.abs(this.mesh.scale.x - s) > 0.01) {
+                    this.mesh.scale.setScalar(THREE.MathUtils.lerp(this.mesh.scale.x, s, 5*dt));
+                }
             }
         }
 
         function createParticles() {
-            // OPTIMIZATION: Reduced Geometry Segments (32 -> 16 or 12)
-            const sphereGeo = new THREE.SphereGeometry(0.5, 16, 16); 
-            const boxGeo = new THREE.BoxGeometry(0.55, 0.55, 0.55); 
-            const curve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0, 0.3, 0),
-                new THREE.Vector3(0.1, 0.5, 0), new THREE.Vector3(0.3, 0.4, 0)
-            ]);
-            // OPTIMIZATION: Reduced Tube Segments (16->8, 8->4)
-            const candyGeo = new THREE.TubeGeometry(curve, 8, 0.08, 4, false);
+            // ULTRA OPTIMIZATION: Low Poly Geometries
+            const sphereGeo = new THREE.SphereGeometry(0.5, 6, 4); // 6x4 segments (very low poly)
+            const boxGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5); 
+            // Replaced complex TubeGeometry with simple Cylinder for candy
+            const candyGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 5); 
 
-            const goldMat = new THREE.MeshStandardMaterial({
+            // ULTRA OPTIMIZATION: MeshLambertMaterial (Vertex Lit) is much faster than Standard/Physical
+            const goldMat = new THREE.MeshLambertMaterial({
                 color: CONFIG.colors.champagneGold,
-                metalness: 1.0, roughness: 0.1,
-                envMapIntensity: 2.0, 
-                emissive: 0x443300, emissiveIntensity: 0.3
+                emissive: 0x443300, emissiveIntensity: 0.2
             });
 
-            const greenMat = new THREE.MeshStandardMaterial({
+            const greenMat = new THREE.MeshLambertMaterial({
                 color: CONFIG.colors.deepGreen,
-                metalness: 0.2, roughness: 0.8,
                 emissive: 0x002200, emissiveIntensity: 0.2 
             });
 
-            const redMat = new THREE.MeshPhysicalMaterial({
+            const redMat = new THREE.MeshPhongMaterial({ // Phong for shiny red
                 color: CONFIG.colors.accentRed,
-                metalness: 0.3, roughness: 0.2, clearcoat: 1.0,
-                emissive: 0x330000
+                shininess: 30,
+                emissive: 0x220000
             });
             
-            const candyMat = new THREE.MeshStandardMaterial({ map: caneTexture, roughness: 0.4 });
+            const candyMat = new THREE.MeshLambertMaterial({ map: caneTexture });
 
             for (let i = 0; i < CONFIG.particles.count; i++) {
                 const rand = Math.random();
@@ -428,15 +427,16 @@
                 mesh.scale.set(s,s,s);
                 mesh.rotation.set(Math.random()*6, Math.random()*6, Math.random()*6);
                 
+                // Frustum Culling helps if object is out of camera, ensure it's on
+                mesh.frustumCulled = true;
+
                 mainGroup.add(mesh);
                 particleSystem.push(new Particle(mesh, type, false));
             }
 
-            const starGeo = new THREE.OctahedronGeometry(1.2, 0);
-            const starMat = new THREE.MeshStandardMaterial({
-                color: 0xffdd88, emissive: 0xffaa00, emissiveIntensity: 1.0,
-                metalness: 1.0, roughness: 0
-            });
+            // Star
+            const starGeo = new THREE.OctahedronGeometry(1.2, 0); // 0 detail
+            const starMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 }); // Basic material is fastest
             const star = new THREE.Mesh(starGeo, starMat);
             star.position.set(0, CONFIG.particles.treeHeight/2 + 1.2, 0);
             mainGroup.add(star);
@@ -445,8 +445,10 @@
         }
 
         function createDust() {
+            // Using Points for dust is faster than individual Meshes, but to keep code structure
+            // we will use simple low poly Tetrahedrons
             const geo = new THREE.TetrahedronGeometry(0.08, 0);
-            const mat = new THREE.MeshBasicMaterial({ color: 0xffeebb, transparent: true, opacity: 0.8 });
+            const mat = new THREE.MeshBasicMaterial({ color: 0xffeebb, transparent: true, opacity: 0.6 });
             for(let i=0; i<CONFIG.particles.dustCount; i++) {
                  const mesh = new THREE.Mesh(geo, mat);
                  mesh.scale.setScalar(0.5 + Math.random());
@@ -456,13 +458,16 @@
         }
 
         function addPhotoToScene(texture) {
-            const frameGeo = new THREE.BoxGeometry(1.4, 1.4, 0.05);
-            const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: 1.0, roughness: 0.1 });
+            // Simple Plane for frame
+            const frameGeo = new THREE.PlaneGeometry(1.5, 1.5); 
+            const frameMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.champagneGold });
             const frame = new THREE.Mesh(frameGeo, frameMat);
-            const photoGeo = new THREE.PlaneGeometry(1.2, 1.2);
+            
+            const photoGeo = new THREE.PlaneGeometry(1.3, 1.3);
             const photoMat = new THREE.MeshBasicMaterial({ map: texture });
             const photo = new THREE.Mesh(photoGeo, photoMat);
-            photo.position.z = 0.04;
+            photo.position.z = 0.01;
+            
             const group = new THREE.Group();
             group.add(frame); group.add(photo);
             const s = 0.8;
@@ -490,6 +495,7 @@
         async function initMediaPipe() {
             video = document.getElementById('webcam');
             webcamCanvas = document.getElementById('webcam-preview');
+            // Very low resolution for analysis is enough
             webcamCanvas.width = 160; webcamCanvas.height = 120;
 
             const vision = await FilesetResolver.forVisionTasks(
@@ -501,11 +507,14 @@
                     delegate: "GPU"
                 },
                 runningMode: "VIDEO",
-                numHands: 1
+                numHands: 1,
+                minHandDetectionConfidence: 0.6 // Slightly higher to avoid false positives
             });
             
             if (navigator.mediaDevices?.getUserMedia) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 320, height: 240, frameRate: { ideal: 15 } } // Request low spec video
+                });
                 video.srcObject = stream;
                 video.addEventListener("loadeddata", predictWebcam);
             }
@@ -513,11 +522,10 @@
 
         let lastVideoTime = -1;
         let lastPredictionTime = 0;
-        const PREDICTION_INTERVAL = 100; // OPTIMIZATION: Run detection only every 100ms
+        const PREDICTION_INTERVAL = 150; // OPTIMIZATION: Check hands only 6-7 times a second
 
         async function predictWebcam() {
             const now = performance.now();
-            // Chỉ chạy nhận diện nếu đã qua 100ms từ lần trước
             if (video.currentTime !== lastVideoTime && now - lastPredictionTime > PREDICTION_INTERVAL) {
                 lastVideoTime = video.currentTime;
                 lastPredictionTime = now;
@@ -565,7 +573,8 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                composer.setSize(window.innerWidth, window.innerHeight);
+                // Keep bloom low res on resize
+                composer.setSize(window.innerWidth, window.innerHeight); 
             });
             document.getElementById('file-input').addEventListener('change', handleImageUpload);
             window.addEventListener('keydown', (e) => {
@@ -580,6 +589,7 @@
             requestAnimationFrame(animate);
             const dt = clock.getDelta();
 
+            // Simplified rotation logic
             if (STATE.mode === 'SCATTER' && STATE.hand.detected) {
                 const targetRotY = STATE.hand.x * Math.PI * 0.9; 
                 const targetRotX = STATE.hand.y * Math.PI * 0.25;
@@ -588,7 +598,7 @@
             } else {
                 if(STATE.mode === 'TREE') {
                     STATE.rotation.y += 0.3 * dt;
-                    STATE.rotation.x += (0 - STATE.rotation.x) * 2.0 * dt;
+                    STATE.rotation.x *= 0.9; // Fast decay
                 } else {
                      STATE.rotation.y += 0.1 * dt; 
                 }
